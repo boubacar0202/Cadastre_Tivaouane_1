@@ -5,7 +5,6 @@ import { Head, useForm } from "@inertiajs/vue3";
 import MazBtn from "maz-ui/components/MazBtn";
 import { toast } from "@/Components/AppToast";  
 import BaseInput from "@/Components/BaseInput.vue";
-import { Inertia } from "@inertiajs/inertia";
 
 defineOptions({ layout: DefaultLayout });
   
@@ -28,9 +27,8 @@ const submitForm = () => {
     form.put(route("parametre.updateUser", user.id), {
         preserveScroll: true,
 
-        onSuccess: () => {
-            toast.success(message);
-            Inertia.reload({ preserveState: false });
+        onSuccess: (page) => {
+            toast.success(page.props.flash?.success || "Utilisateur modifié avec succès.");
         },
         onError: () => {
             toast.error("Erreur lors de la modification.");

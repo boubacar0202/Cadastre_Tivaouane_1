@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dossier;
+use App\Models\Terrain;
 use App\Models\EvaluationAmenagement;
 use App\Models\EvaluationBati;
 use App\Models\EvaluationCloture;
@@ -10,7 +11,6 @@ use App\Models\EvaluationCoursAmenagee;
 use App\Models\EvaluationTerrain;
 use App\Models\ReferenceUsage;
 use App\Models\Region;
-use App\Models\Terrain; 
 use Illuminate\Http\Request; 
 use Inertia\Inertia;
 
@@ -18,8 +18,20 @@ class GeometreController extends Controller
 {
     //
    
-    public function index(){
-        return Inertia::render("geometre/index");
+    public function index()
+    {
+        return Inertia::render('geometre/index', [
+            'dossiers' => Dossier::query()->orderByDesc('id')->get(),
+            'terrains' => Terrain::query()->get([
+                'id',
+                'txt_num_dossier',
+                'txt_nicad',
+                'nbr_surface',
+                'txt_num_section',
+                'txt_num_parcelle',
+                'txt_lotissement',
+            ]),
+        ]);
     }
   
 

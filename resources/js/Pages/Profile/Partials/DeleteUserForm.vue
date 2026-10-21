@@ -41,28 +41,28 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 class="text-lg font-medium text-gray-900">
-                Supprimer Compte
+            <h2 class="text-lg font-medium text-primary-txt">
+                Supprimer mon compte
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-primary-txt">
                 Une fois votre compte supprimé, toutes ses ressources et données 
                 seront définitivement effacées. Avant de supprimer votre compte, 
                 veuillez télécharger toutes les données ou informations que vous souhaitez conserver. 
             </p>
         </header>
 
-        <DangerButton @click="confirmUserDeletion">Delete Account</DangerButton>
+        <DangerButton @click="confirmUserDeletion">Supprimer Compte</DangerButton>
 
         <Modal :show="confirmingUserDeletion" @close="closeModal">
             <div class="p-6">
                 <h2
-                    class="text-lg font-medium text-gray-900"
+                    class="text-lg font-medium text-primary-txt"
                 >
                     Êtes-vous sûr de vouloir supprimer votre compte ?
                 </h2>
 
-                <p class="mt-1 text-sm text-gray-600">
+                <p class="mt-1 text-sm text-primary-txt">
                     Une fois votre compte supprimé, toutes ses ressources et données seront 
                     définitivement effacées. Veuillez entrer votre mot de passe pour confirmer
                     que vous souhaitez supprimer votre compte de façon permanente. 

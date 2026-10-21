@@ -28,9 +28,10 @@ const arrondissements = ref(null);
 const communes = ref(null); 
 const lotissements = ref(null); 
 
-const txt_num_section = ref('');
-const txt_num_parcelle = ref('');
-const txt_appartement = ref(''); 
+// Supprimé : const txt_num_section = ref('');
+// Supprimé : const txt_num_parcelle = ref('');
+// Supprimé : const txt_appartement = ref(''); 
+
 const fichierPDF = ref(null); 
 const activeTab = ref("");   
 const show = ref(false);
@@ -72,7 +73,9 @@ const props = defineProps({
     lotissements: Array
 
 });
- 
+
+
+// Formulaire 
 const form = useForm({
     //  Dossier
     txt_num_dossier: "",
@@ -94,7 +97,7 @@ const form = useForm({
     txt_appartement:"",
     txt_nicad: "", 
     txt_num_titre: "",
-    txt_titre_mere: "", // Supprimez l'une des occurrences
+    txt_titre_mere: "",
     nbr_surface: "",
     slt_document_admin: "",
     txt_num_deliberation: "",
@@ -124,7 +127,7 @@ const form = useForm({
     eml_email: "",
     txt_representant: "",
     tel_telRepresentant: "", 
-        // Personne physique
+    // Personne physique
     slt_categoriePM:"",
     txt_formJuridiquePM:"", 
     txt_denominationPM:"", 
@@ -134,7 +137,7 @@ const form = useForm({
     txt_telephonePM: "", 
     txt_emailPM:"", 
     txt_adressePM:"", 
-        // Personne morale
+    // Personne morale
     slt_etablissementPA:"",
     txt_personneResponsablePA:"",
     txt_fonctionResponsablePA:"",
@@ -145,44 +148,7 @@ const form = useForm({
     fichierPDF: "",
 });
 
-// Vérifier l'existence du dossier avant d'afficher le formulaire
-// const verifierDossier = async () => {
-//     try {
-//         const { data } = await axios.post('/dossier/verifyDossier', {
-//             txt_num_lotissement: form.txt_num_lotissement,
-//             txt_lotissement: form.txt_lotissement,
-//         });
-
-//         // Si un terrain identique existe déjà
-//         if (data.duplicate) {
-//             formVisible.value = false;
-//             toast.success(data.message);
-//             return;
-//         }
-
-//         // Afficher le formulaire
-//         formVisible.value = true; 
-//         toast.success(data.message);
-
- 
-
-//         // Remplir le dossier s'il existe
-//         if (data.dossier) {
-//             form.txt_num_dossier = data.dossier.txt_num_dossier ?? '';
-//         }
-
-//     } catch (err) {
-//         formVisible.value = false; 
-
-//         if (err.response) {  
-//             toast.error(err.response.data?.error || "Entrer le numéro lotissement et le lotissement.");
-//         } else if (err.request) { 
-//             toast.error("Aucune réponse du serveur");
-//         } else { 
-//             toast.error(err.message);
-//         }
-//     } 
-// };
+// Vérifier l'existence du dossier avant d'afficher le formulaire 
 const verifierDossier = async () => {
     console.log("Vérification du dossier avec : ", {
         txt_num_lotissement: form.txt_num_lotissement,
@@ -209,9 +175,9 @@ const verifierDossier = async () => {
         }
 
     } catch (err) {
-        console.error(err.response?.data); // Pour debug
+        console.error(err.response?.data);
         formVisible.value = false;
-        toast.error("Erreur serveur");
+        toast.error("Terrain non trouvé. Veuillez vérifier les informations saisies.");
     }
 };
 
@@ -219,6 +185,7 @@ const verifierDossier = async () => {
 const selectedCommune = computed(() => {
     return props.communes.find(c => c.id == form.slt_commune);
 });
+
 const txt_nicad = computed(() => {
     const prefix = selectedCommune.value?.txt_codeCommune || "";
 
@@ -231,15 +198,22 @@ const txt_nicad = computed(() => {
     return value.replace(/\s/g, "").length >= MIN_LENGTH ? value : "";
 }); 
 
+// Préremplire les champs N° dossier et N° d'ordre
 const fetchNextDossier = async () => {
     try {
         const response = await axios.get("/dossier/next");
+
         form.txt_num_dossier = response.data.num_dossier || "";
         form.txt_num_dordre = response.data.num_dordre || "";
+
     } catch (error) {
-        console.error("Erreur lors de la récupération du numéro de dossier :", error);
+        console.error(
+            "Erreur lors de la récupération du numéro de dossier :",
+            error
+        );
     }
 };
+
 onMounted(fetchNextDossier);
   
 const fetchDepartements = async () => {
@@ -292,7 +266,7 @@ const fetchCommunes = async () => {
 };
 
 const fetchlotissements = async () => {
-    if (!slt_commune.value) {   // ❗ correction ici
+    if (!slt_commune.value) {
         lotissements.value = [];
         return;
     }
@@ -316,7 +290,6 @@ watch(() => form.slt_region, fetchDepartements);
 watch(() => form.slt_departement, fetchArrondissements);
 watch(() => form.slt_arrondissement, fetchCommunes);
 watch(() => form.slt_commune, fetchlotissements);
-// watch(() => form.txt_lotissement, fetchlotissement);
 
 watchEffect(() => {
     form.slt_region = slt_region.value;
@@ -334,7 +307,7 @@ watch(() => form.ussu_bornage, (newValue) => {
     show.value = newValue === "Morcellement de Copropriété";
 });
 
-// charge titulaire Etat Perssone Morale Personne Physique 
+// charge titulaire Etat Personne Morale Personne Physique 
 const handleSelectChangeTitulaire = () => {
     showSectionPP.value = form.slt_titulaire === "Personne Physique";
     showSectionPM.value = form.slt_titulaire === "Personne Morale";
@@ -356,11 +329,12 @@ const validateInput = () => {
 };
  
 const errorMessageNumSection = ref(""); 
-const validateInputNumSection = (e) => {
-    const value = e.target.value;
+const validateInputNumSection = () => {
+    const value = (form.txt_num_section || "").toString();
+
     if (!/^\d*$/.test(value)) {
         errorMessageNumSection.value = "❌ Seulement des chiffres.";
-    } else if (value.length !== 3) {
+    } else if (value.length !== 3 && value.length > 0) {
         errorMessageNumSection.value = "❌ Exactement 3 chiffres.";
     } else {
         errorMessageNumSection.value = "";
@@ -373,13 +347,12 @@ const validateInputNumParcelle = () => {
 
     if (!/^\d+$/.test(value)) {
         errorMessageNumParcelle.value = "❌ Seulement des chiffres.";
-    } else if (value.length !== 5) {
+    } else if (value.length !== 5 && value.length > 0) {
         errorMessageNumParcelle.value = "❌ Exactement 5 chiffres.";
     } else {
         errorMessageNumParcelle.value = "";
     }
 };
- 
  
 // Submit du formulaire
 const submitForm = function () {  
@@ -388,19 +361,18 @@ const submitForm = function () {
     form.slt_departement = slt_departement?.value || ""; 
     form.slt_arrondissement = slt_arrondissement?.value || ""; 
     form.slt_commune = slt_commune?.value || "";
-    form.txt_nicad = txt_nicad?.value || ""; 
-    form.txt_num_section = txt_num_section?.value || ""; 
-    form.txt_num_parcelle = txt_num_parcelle?.value || ""; 
-    form.txt_appartement = txt_appartement?.value || ""; 
+    form.txt_nicad = txt_nicad?.value || "";  
   
     // Formulaire Laravel
     form.post(route('secretariat.store'), {
+
         onSuccess: (page) => { 
             toast.success(page.props.flash?.success || "✅ Dossier enregistré !");
             Inertia.visit(route("secretariat.create"), { replace: true });
         },
-        onError: (errors) => { 
-            Object.values(errors).forEach(msg => toast.error(msg)); 
+        onError: (errors) => {
+            const messages = Object.values(errors);
+            toast.error(messages.join('\n'));
         },
         onFinish: () => {
             console.log("🟡 Requête terminée");
@@ -430,20 +402,21 @@ const submitForm = function () {
                         <form
                             class="space-y-4" autocomplete="on" @submit.prevent="submitForm"
                         >
-                            <div class="p-6">
-                                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2 relative">
-                                    <h5 class="text-lg text-primary-txt font-bold mb-4">
+                            <div class="p-6"> 
+                                <div class="flex items-center justify-between mb-4">
+                                    <h5 class="text-lg text-primary-txt font-bold">
                                         Réferences Dossiers
                                     </h5> 
                                     <MazBtn 
                                         type="submit" 
-                                        no-shadow no-hover-effect
-                                        class="w-28 h-8 text-white bg-gradient-to-r from-primary via-primary-dark to-primary
+                                        no-shadow 
+                                        no-hover-effect
+                                        class="w-36 h-8 text-white bg-gradient-to-r from-primary via-primary-dark to-primary
                                             hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300
                                             dark:focus:ring-blue-800 shadow-lg shadow-blue-500/50 dark:shadow-lg
-                                            dark:shadow-blue-800/80 font-medium rounded-lg text-xs px-3 py-1 text-center me-2 mb-2"
-                                            size="medium"
-                                            @click="verifierDossier"
+                                            dark:shadow-blue-800/80 font-medium rounded-lg text-xs px-3 py-1 text-center"
+                                        size="medium"
+                                        @click="verifierDossier"
                                     >
                                         Vérifier
                                     </MazBtn>
@@ -563,16 +536,7 @@ const submitForm = function () {
                                             v-model="slt_commune"  
                                             @change="fetchlotissements"
                                         />   
-<!--                                         
-                                        <BaseSelect
-                                            label="Lotissement/Quartier"
-                                            :options="lotissements"
-                                            optionLabel="txt_denomination"
-                                            optionValue="id"
-                                            v-model="form.txt_lotissement"
-                                            @keyup.enter="verifierDossier" 
-                                        />  -->
-                                        
+  
                                         <BaseSelect
                                             label="Lotissement/Quartier"
                                             :options="lotissements"
@@ -643,8 +607,7 @@ const submitForm = function () {
                                             :minlength="3"
                                             v-model="form.txt_num_section" 
                                             :error="errorMessageNumSection" 
-                                            @input="() => validateInputNumSection()"
-
+                                            @input="validateInputNumSection"
                                         /> 
 
                                         <BaseInput
@@ -796,12 +759,12 @@ const submitForm = function () {
                                                     :maxlength="3"
                                                     :minlength="3"
                                                     v-model="form.txt_appartement"
-                                                    :error="errorMessageNumSection"  
+                                                    :error="errorMessage"  
                                                 /> 
  
                                                 <BaseInput 
                                                     class="sm:col-span-2"
-                                                    label="ApparNom Géomètre"
+                                                    label="Nom Géomètre"
                                                     name="txt_nom_geometre" 
                                                     v-model="form.txt_nom_geometre" 
                                                 /> 
@@ -830,7 +793,7 @@ const submitForm = function () {
                                             @change="handleSelectChangeTitulaire"
 
                                             :options="[
-                                                {value: 'Personne Physique', label: 'Perssonne Physique'},
+                                                {value: 'Personne Physique', label: 'Personne Physique'},
                                                 {value: 'Personne Morale', label: 'Personne Morale'},
                                                 {value: 'Etat', label: 'Etat'},
                                             ]"
@@ -959,7 +922,7 @@ const submitForm = function () {
                                             v-model="form.tel_telRepresentant"   
                                         />
 
-                                        <!-- Perssonne Morale -->
+                                        <!-- Personne Morale -->
                                                                                                                                                                                                 
                                         <BaseSelect
                                             v-if="showSectionPM"  
@@ -984,6 +947,7 @@ const submitForm = function () {
                                                 {value: 'Securité', label: 'Securité'},
                                                 {value: 'Santé', label: 'Santé'},
                                                 {value: 'Mine', label: 'Mine'},
+                                                {value: 'Etablissement Financier', label: 'Etablissement Financier'},
                                                 {value: 'Autres', label: 'Autres'},
                                             ]"
                                         />
@@ -1140,4 +1104,3 @@ const submitForm = function () {
         </div>
     </AuthenticatedLayout>
 </template>
-

@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import MazBtn from "maz-ui/components/MazBtn";
 import { defineProps } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import {onMounted, ref, computed, watch, watchEffect } from 'vue';
 import axios from "axios"; 
 import { toast } from "@/Components/AppToast";  
@@ -21,12 +21,13 @@ const { terrain } = defineProps({
     departements: Array,
     arrondissements: Array,
     communes: Array,
+    lotissements: Array,
     references_usages: Array, 
     occupants: Array,
     occupantsBP: Array,
 })
   
-// const page = usePage() 
+const page = usePage();
 // const code = ref('')
 const formVisible = ref(false)
 const showModal = ref(true);     
@@ -932,18 +933,11 @@ const codeDaccees = async (code) => {
         isLoading.value = false
     }
 }
-
-
+ 
+// Envoi du formulaire
 async function submit() {
     try {
-        // 1️⃣ Envoyer tout le formulaire (JSON si pas de fichier)
-        await  form.put(route('secretariat.update', terrain.id), form.data(),  {
-            forceFormData: true,  
-            preserveScroll: true,
-            onSuccess: () => console.log("✅ Update réussi !"),
-            onError: (errors) => console.error(errors),
-        });
-
+        
         // 2️⃣ Envoyer le fichier PDF si présent
         if (form.fichierPDF instanceof File) {
             const pdfForm = new FormData();
@@ -953,12 +947,22 @@ async function submit() {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
         }
+
+        // 1️⃣ Envoyer tout le formulaire (JSON si pas de fichier)
+        await  form.put(route('secretariat.update', terrain.id), form.data(),  {
+            forceFormData: true,  
+            preserveScroll: true,
+            onSuccess: () => console.log("✅ Update réussi !"),
+            onError: (errors) => console.error(errors),
+        });
  
     } catch (error) {
         console.error("❌ Erreur submit :", error);
         toast.error("❌ Erreur lors de la modification");
     }
 }
+
+
  
 </script>
 
@@ -1103,6 +1107,7 @@ async function submit() {
                                         <label for="slt_arrondissement" class="block font-medium text-primary-txt">Arrondissement</label>
                                         <select v-model="form.slt_arrondissement"  id="slt_arrondissement"
                                           class="h-8 block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 
+                         
                                           outline outline-1 -outline-offset-1 outline-primary-only placeholder:text-gray-400 
                                           focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary sm:text-sm/6">
                                           <option v-for="arrondissement in arrondissements" :value="arrondissement.id" :key="arrondissement.id">
@@ -1110,8 +1115,8 @@ async function submit() {
                                           </option>
                                         </select>
                                         <div v-if="form.errors.slt_arrondissement" class="text-red-500">{{ form.errors.slt_arrondissement }}</div>
-                                      </div>
-                                      
+                                      </div>  
+
                                       <div>
                                         <label for="slt_commune" class="block font-medium text-primary-txt">Commune</label>
                                         <select v-model="form.slt_commune"  id="slt_commune"
@@ -2627,7 +2632,7 @@ async function submit() {
                                                           class="block w-full rounded-md bg-white 
                                                               px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                               outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                              focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                              focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                   </div>
                                               </div>
                                           </div>
@@ -2776,7 +2781,7 @@ async function submit() {
                                                       id="nbr_valeur_total_ca"  class="block w-full rounded-md bg-white 
                                                           px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                           outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                          focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                          focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                   </div>
                                               </div> 
                                           </div>
@@ -2929,7 +2934,7 @@ async function submit() {
                                                           class="block w-full rounded-md bg-white 
                                                           px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                           outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                          focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                          focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                   </div>
                                               </div>
                                           </div>
@@ -3056,7 +3061,7 @@ async function submit() {
                                                           class="block w-full rounded-md bg-white 
                                                           px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                           outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                          focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                          focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                   </div>
                                               </div>
                                           </div>
@@ -3081,7 +3086,7 @@ async function submit() {
                                                               class="block w-64 rounded-md bg-white 
                                                               px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                               outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                              focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                              focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                       </div>
                                                   </div>
                                                   <div  class="grid gap-6 mb-6 md:grid-cols-1">
@@ -3096,7 +3101,7 @@ async function submit() {
                                                               class="block w-64 rounded-md bg-white 
                                                               px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                               outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                              focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                              focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                       </div> 
                                                   </div>
                                                   <div  class="grid gap-6 mb-6 md:grid-cols-1">
@@ -3109,7 +3114,7 @@ async function submit() {
                                                               class="block w-64 rounded-md bg-white 
                                                                   px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                                   outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                                  focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                                  focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                       </div>
                                                   </div>
                                                   <div class="sm:col-span-2">
@@ -3124,14 +3129,14 @@ async function submit() {
                                                               class="block w-64 rounded-md bg-white 
                                                                   px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 
                                                                   outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                                  focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                                                                  focus:-outline-offset-2 focus:outline-primary sm:text-sm/6"
                                                           /> 
                                                           <!-- ✅ Affichage le fichier enregistré -->
                                                           <div v-if="form.fichierPDF && typeof form.fichierPDF === 'string'" class="mt-2"> 
                                                               <a
                                                                   :href="`/storage/${form.fichierPDF}`"
                                                                   target="_blank"
-                                                                  class="text-blue-600 underline"
+                                                                  class="text-primary underline"
                                                               >
                                                                   Voir le fichier
                                                               </a>

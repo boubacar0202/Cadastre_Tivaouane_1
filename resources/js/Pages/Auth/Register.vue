@@ -1,9 +1,7 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import BaseInput from '@/Components/BaseInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue'
 
@@ -23,7 +21,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    role: ''
+    txt_roleUser: 'user',
 });
 
 const submit = () => {
@@ -35,130 +33,79 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Register" />
+        <Head title="Inscription" />
 
         <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="name" value="Pénom et Nom" class="text-primary" />
+            <BaseInput
+                id="name"
+                name="name"
+                label="Pénom et Nom"
+                type="text"
+                v-model="form.name"
+                required
+                autofocus
+                autocomplete="name"
+                wrapper-class="w-full"
+                :error="form.errors.name"
+            />
 
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full h-10 text-lg px-3 py-2 rounded-md bg-white text-base text-gray-900 
-                        outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 
-                        focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary-dark sm:text-sm/6"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
+            <BaseInput
+                id="email"
+                name="email"
+                label="Adresse Email"
+                type="email"
+                v-model="form.email"
+                required
+                autocomplete="username"
+                wrapper-class="mt-4 w-full"
+                :error="form.errors.email"
+            />
 
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="email" value="Adresse Email" class="text-primary" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full h-10 text-lg px-3 py-2 rounded-md bg-white text-base text-gray-900 
-                        outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 
-                        focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary-dark sm:text-sm/6"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Mot de passe" class="text-primary"/>
-
-                <div class="flex items-center mt-1 relative">   
-                    <TextInput
-                        id="password"
-                        :type="showPassword ? 'text' : 'password'"
-                        class="mt-1 block w-full h-10 text-lg px-3 py-2 rounded-md bg-white text-base text-gray-900 
-                            outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 
-                            focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary-dark sm:text-sm/6"
-                        v-model="form.password"
-                        required
-                        autocomplete="new-password"
-                    />
+            <BaseInput
+                id="password"
+                name="password"
+                label="Mot de passe"
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                required
+                autocomplete="new-password"
+                wrapper-class="mt-4 w-full"
+                :error="form.errors.password"
+            >
+                <template #append>
                     <button
                         type="button"
                         @click="togglePassword"
-                        class="absolute right-3 text-primary-txt"
-                        >
+                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-primary-txt"
+                    >
                         <span v-if="showPassword">👁️</span>
                         <span v-else>👁️‍🗨️</span>
-                    </button> 
-                </div>
-                 
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
+                    </button>
+                </template>
+            </BaseInput>
 
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirmation Mot de passe"
-                    class="text-primary"
-                />
-
-                <div class="flex items-center mt-1 relative">   
-                    <TextInput
-                        id="password_confirmation"
-                        :type="showPasswordConfirmer ? 'text' : 'password'"
-                        class="mt-1 block w-full h-10 text-lg px-3 py-2 rounded-md bg-white text-base text-gray-900 
-                            outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 
-                            focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary-dark sm:text-sm/6"
-                        v-model="form.password_confirmation"
-                        required
-                        autocomplete="new-password"
-                    />
+            <BaseInput
+                id="password_confirmation"
+                name="password_confirmation"
+                label="Confirmation Mot de passe"
+                :type="showPasswordConfirmer ? 'text' : 'password'"
+                v-model="form.password_confirmation"
+                required
+                autocomplete="new-password"
+                wrapper-class="mt-4 w-full"
+                :error="form.errors.password_confirmation"
+            >
+                <template #append>
                     <button
                         type="button"
                         @click="togglePasswordConfirmer"
-                        class="absolute right-3 text-primary-txt"
-                        >
+                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-primary-txt"
+                    >
                         <span v-if="showPasswordConfirmer">👁️</span>
                         <span v-else>👁️‍🗨️</span>
-                    </button> 
-                </div>
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
-
-                        <div class="mt-4">
-                <InputLabel
-                    for="Role"
-                    value="Rôle"
-                    class="text-primary"
-                />
-
-                <div class="flex items-center mt-1 relative">   
-                    <TextInput
-                        id="role"
-                        type= 'text'
-                        class="mt-1 block w-full h-10 text-lg px-3 py-2 rounded-md bg-white text-base text-gray-900 
-                            outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 
-                            focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary-dark sm:text-sm/6"
-                        v-model="form.role"
-                        required
-                        autocomplete="new-password"
-                    /> 
-                </div>
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
+                    </button>
+                </template>
+            </BaseInput>
 
             <div class="mt-4 flex items-center justify-end">
                 <Link

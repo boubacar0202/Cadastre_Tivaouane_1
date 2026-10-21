@@ -20,7 +20,11 @@ class MutationController extends Controller
      */
     public function index()
     {
-        //
+        $mutation = Mutation::all();
+
+        return Inertia::render('mutation/index', [
+            'mutations' => $mutation,
+        ]);
     }
 
     /**

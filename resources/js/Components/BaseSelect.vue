@@ -1,45 +1,168 @@
 <script setup>
-defineProps({
-  modelValue: [String, Number],
-  label: String,
-  name: String,
-  options: Array,
-  optionLabel: { type: String, default: "label" },
-  optionValue: { type: String, default: "value" },
-  required: Boolean,
-})
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, useAttrs } from "vue"
 
-defineEmits(["update:modelValue"])
+  defineOptions({ inheritAttrs: false })
+
+  const props = defineProps({
+    modelValue: [String, Number],
+    label: String,
+    name: String,
+    id: String,
+    options: { type: Array, default: () => [] },
+    optionLabel: { type: String, default: "label" },
+    optionValue: { type: String, default: "value" },
+    required: Boolean,
+    disabled: Boolean,
+    customError: String,
+    placeholder: { type: String, default: "" },
+    fontSize: { type: String, default: "0.875rem" },
+    wrapperClass: { type: String, default: "sm:col-span-1" },
+    inputClass: { type: String, default: "" },
+    modelModifiers: { type: Object, default: () => ({}) },
+  })
+
+  const emit = defineEmits(["update:modelValue", "change"])
+  const attrs = useAttrs()
+
+  const ouvert = ref(false)
+  const racine = ref(null)
+  const selectId = computed(() => props.id || props.name || undefined)
+
+  const normalizedOptions = computed(() =>
+    (props.options || []).map((option, index) => {
+      if (option !== null && typeof option === "object") {
+        const value = option[props.optionValue]
+        return {
+          label: option[props.optionLabel] ?? value,
+          value,
+          key: `${value ?? "option"}-${index}`,
+        }
+      }
+
+      return {
+        label: option,
+        value: option,
+        key: `${option ?? "option"}-${index}`,
+      }
+    })
+  )
+
+  const optionChoisie = computed(() =>
+    normalizedOptions.value.find((option) => String(option.value) === String(props.modelValue ?? ""))
+  )
+
+  const libelleAffiche = computed(() => optionChoisie.value?.label || props.placeholder || "Sélectionner")
+
+  const rootClass = computed(() => {
+    const extra = attrs.class
+    if (extra && String(extra).includes("col-span")) return extra
+    return [props.wrapperClass, extra]
+  })
+
+  function choisir(option) {
+    if (props.disabled) return
+    let value = option.value
+    if (props.modelModifiers.number && value !== "" && value !== null && value !== undefined) {
+      value = Number(value)
+    }
+    emit("update:modelValue", value)
+    ouvert.value = false
+    nextTick(() => emit("change", value))
+  }
+
+  function basculer() {
+    if (props.disabled) return
+    ouvert.value = !ouvert.value
+  }
+
+  function fermerSiDehors(event) {
+    if (!racine.value?.contains(event.target)) ouvert.value = false
+  }
+
+  onMounted(() => document.addEventListener("pointerdown", fermerSiDehors))
+  onBeforeUnmount(() => document.removeEventListener("pointerdown", fermerSiDehors))
 </script>
 
 <template>
-  <div class="sm:col-span-1">
-    <label :for="name" class="block text-sm font-medium text-primary-txt">
+  <div ref="racine" :class="[rootClass, ouvert ? 'relative z-40' : '']">
+    <label
+      v-if="label"
+      :for="selectId"
+      class="block text-sm font-semibold text-primary mb-1"
+      :style="{ fontSize: fontSize }"
+    >
       {{ label }}
+      <span v-if="required" class="text-red-500 ml-0.5">*</span>
     </label>
 
-    <div class="mt-2">
-      <select
-        :id="name"
-        :name="name"
-        :required="required"
-        class="h-7 block w-full rounded-md bg-white px-3 py-1.5 text-base text-primary-txt
-              outline outline-1 -outline-offset-1 outline-primary-only placeholder:text-gray-400
-              focus:outline focus:outline-2 focus:-outline-2 focus:outline-primary sm:text-sm/6"
-        :value="modelValue"
-        @change="$emit('update:modelValue', $event.target.value)"
+    <div :class="['relative', ouvert ? 'z-30' : '']">
+      <button
+        :id="selectId"
+        type="button"
+        :disabled="disabled"
+        :aria-expanded="ouvert"
+        :aria-label="label || placeholder || undefined"
+        :class="[
+          'flex h-10 w-full items-center justify-between rounded-xl bg-white px-3.5 text-left text-base text-primary-txt',
+          'border border-gray-300 shadow-sm cursor-pointer',
+          'transition-all duration-200 ease-in-out',
+          'hover:border-gray-400 hover:shadow',
+          'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary',
+          'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70',
+          !optionChoisie ? 'text-primary-txt/50' : '',
+          inputClass,
+          customError ? 'border-red-500 focus:ring-red-500/40 focus:border-red-500' : ''
+        ]"
+        @click="basculer"
       >
-        <option disabled value="">Choisir ici</option>
+        <span class="truncate">{{ libelleAffiche }}</span>
+        <svg class="h-4 w-4 shrink-0 text-primary-txt" :class="{ 'rotate-180': ouvert }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
+      </button>
 
-        <!-- Si options = [{id:1, slt_region:'Dakar'}] -->
+      <ul
+        v-if="ouvert"
+        class="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-y-auto rounded-xl border border-primary-only bg-white py-1 shadow-lg"
+        role="listbox"
+      >
+        <li v-for="option in normalizedOptions" :key="option.key">
+          <button
+            type="button"
+            class="flex w-full items-center px-3.5 py-2 text-left text-sm text-primary-txt hover:bg-primary-form"
+            :class="{ 'bg-primary-form font-semibold text-primary': String(option.value) === String(modelValue ?? '') }"
+            role="option"
+            :aria-selected="String(option.value) === String(modelValue ?? '')"
+            @click="choisir(option)"
+          >
+            {{ option.label }}
+          </button>
+        </li>
+      </ul>
+      <select
+        class="pointer-events-none absolute h-0 w-0 opacity-0"
+        tabindex="-1"
+        aria-hidden="true"
+        :name="name"
+        :required="!!required"
+        :value="modelValue === null || modelValue === undefined ? '' : String(modelValue)"
+      >
+        <option value=""></option>
         <option
-          v-for="opt in options"
-          :key="opt[optionValue]"
-          :value="opt[optionValue]"
+          v-for="option in normalizedOptions"
+          :key="`hidden-${option.key}`"
+          :value="option.value === null || option.value === undefined ? '' : String(option.value)"
         >
-          {{ opt[optionLabel] }}
+          {{ option.label }}
         </option>
       </select>
     </div>
+
+    <p v-if="customError" class="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+      <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10A8 8 0 112 10a8 8 0 0116 0zm-8-4a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+      </svg>
+      {{ customError }}
+    </p>
   </div>
 </template>

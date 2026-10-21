@@ -116,12 +116,12 @@ const confirmerSuppression = async (code) => {
           <div class="bg-white shadow rounded-xl">
             <div class="flex items-center justify-between p-4 border-b rounded-t-xl bg-primary">
               <h1 class="flex items-start space-x-1 text-lg text-white font-semibold">
-                Liste des lotissements :
+                Liste des lotissements :  
                 <span v-if="totalEnregistrement>0" class="text-white font-semibold">
-                    ({{ totalEnregistrement }})
+                  {{ totalEnregistrement }}
                 </span>
                 <span v-else class="text-white font-semibold">
-                    Aucun enregistrement
+                  Aucun enregistrement
                 </span> 
               </h1>
    
@@ -185,7 +185,7 @@ const confirmerSuppression = async (code) => {
                           <td class="px-2 py-1 text-xs border whitespace-nowrap">{{ lot.txt_nombreParcelle || '-' }}</td> 
                           <td class="px-2 py-1 text-xs border">
                             <div v-if="lot.txt_documentsAfferants">
-                              <a :href="`/storage/${lot.txt_documentsAfferants}?t=${Date.now()}`" target="_blank" class="text-blue-600 underline">
+                              <a :href="`/storage/${lot.txt_documentsAfferants}?t=${Date.now()}`" target="_blank" class="text-primary underline">
                                 Voir PDF
                               </a>
                             </div>

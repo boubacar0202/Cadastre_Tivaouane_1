@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Arrivee;
+use App\Models\Depart;
 use App\Models\Terrain;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,12 +26,24 @@ class DashboardController extends Controller
                 ->orWhere('txt_nicad', '=', '')
                 ->count();
 
+        $Instances = Arrivee::leftJoin(
+                'departs',
+                'departs.txt_referencecourierarriveecd',
+                '=',
+                'arrivees.txt_reference'
+            )
+            ->where('arrivees.txt_categorie', 'Demande SERVICES')
+            ->whereNull('departs.txt_referencecourierarriveecd')
+            ->count();
 
         return Inertia::render('Dashboard', [
             'totalTerrains' => Terrain::count(),
             'totalDelimitation' => $Delimitation,
             'totalNicad' => $Nicad,
-            'totalSansNicad' => $SansNicad
+            'totalSansNicad' => $SansNicad,
+            'totalCourriersArrivees' => Arrivee::count(),
+            'totalCourriersDeparts' => Depart::count(),
+            'totalInstances' => $Instances,
         ]);
     }
 }

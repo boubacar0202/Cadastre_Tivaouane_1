@@ -1631,7 +1631,7 @@ const submitForm = async () => {
                                                         class="block w-64 rounded-md bg-white 
                                                             px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                             outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                            focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                            focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                 </div>
                                             </div>
                                         </div>
@@ -1786,7 +1786,7 @@ const submitForm = async () => {
                                                     name="nbr_valeur_total_cours" id="Valeur_total_cours"  class="block w-72 rounded-md bg-white 
                                                         px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                         outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                        focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                        focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                 </div>
                                             </div> 
                                         </div>
@@ -1946,7 +1946,7 @@ const submitForm = async () => {
                                                         class="block w-72 rounded-md bg-white 
                                                         px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                         outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                        focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                        focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                 </div>
                                             </div>
                                         </div>
@@ -2073,7 +2073,7 @@ const submitForm = async () => {
                                                         class="block w-72 rounded-md bg-white 
                                                         px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                         outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                        focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                        focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                 </div>
                                             </div>
                                         </div>
@@ -2099,7 +2099,7 @@ const submitForm = async () => {
                                                             class="block w-64 rounded-md bg-white 
                                                             px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                             outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                            focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                            focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                     </div>
                                                 </div>
                                                 <div  class="grid gap-6 mb-6 md:grid-cols-1">
@@ -2114,7 +2114,7 @@ const submitForm = async () => {
                                                             @blur="nbr_valeurLocative = arrondirDeuxDecimales(nbr_valeurLocative)"                                                           class="block w-64 rounded-md bg-white 
                                                             px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                             outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                            focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                            focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                     </div>
                                                     <!-- <p>Taux détecté : {{ occupant.tauxValeurLocative }}</p> -->
                                                 </div>
@@ -2130,7 +2130,7 @@ const submitForm = async () => {
                                                             class="block w-64 rounded-md bg-white 
                                                                 px-3 py-1.5 text-base text-primary-txt outline outline-1 -outline-offset-1 
                                                                 outline-primary-only placeholder:text-gray-400 focus:outline focus:outline-2 
-                                                                focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                                                                focus:-outline-offset-2 focus:outline-primary sm:text-sm/6">
                                                     </div>
                                                 </div> 
                                             </div>

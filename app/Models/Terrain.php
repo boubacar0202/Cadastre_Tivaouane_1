@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Route;
+
 
 class Terrain extends Model
 {
@@ -99,6 +101,20 @@ class Terrain extends Model
         return $this->hasMany(Mutation::class);
     } 
 
- 
- 
+    public function show($numero)
+    {
+        $terrain = Terrain::where('txt_num_parcelle', $numero)
+            ->orWhere('txt_nicad', $numero)
+            ->first();
+
+        if (!$terrain) {
+            return response()->json([
+                'message' => 'Parcelle introuvable'
+            ], 404);
+        }
+
+        return response()->json($terrain);
+    }
 }
+
+ 

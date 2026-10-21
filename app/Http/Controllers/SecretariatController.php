@@ -17,12 +17,13 @@ use App\Models\ReferenceUsage;
 use App\Models\Terrain;
 use App\Models\Titulaire;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Log; 
+use Inertia\Inertia; 
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Illuminate\Validation\ValidationException; 
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SecretariatController extends Controller
 {
@@ -50,6 +51,7 @@ class SecretariatController extends Controller
         ]);
     }
  
+    // edit terrain
     public function edit($id)
     {
         $terrain = Terrain::with([
@@ -73,69 +75,99 @@ class SecretariatController extends Controller
             'regions' => Region::select('id', 'slt_region')->get(),
             'departements' => Departement::select('id', 'slt_departement')->get(),
             'arrondissements' => Arrondissement::select('id', 'slt_arrondissement')->get(),
-            'communes' => Commune::select('id', 'slt_commune', 'txt_codeCommune')->get(),  
-        ]);
+            'communes' => Commune::select('id', 'slt_commune', 'txt_codeCommune')->get(), 
+            'lotissements' => Lotissement::select('id', 'txt_denomination')->get(),        ]);
     }
-
-    // verifier Dossier exist
-    // public function verifyDossier(Request $request)
-    // {
-    //     $request->validate([
-    //         'txt_num_lotissement' => 'required|string',
-    //         'txt_lotissement' => 'required', // ID du lotissement
-    //     ]);
-
-    //     $num = trim($request->txt_num_lotissement);
-    //     $lotissementId = $request->txt_lotissement;
-
-    //     // Chercher le terrain uniquement
-    //     $terrain = Terrain::where('txt_num_lotissement', $num) && 
-    //         Lotissement::where('id', $lotissementId) 
-    //         ->first();
-
-    //     if (!$terrain) {
-    //         return response()->json([
-    //             'exists' => false,
-    //             'message' => '❌ Terrain introuvable, enregistrer le terrain avant mutation.'
-    //         ]);
-    //     }
   
-    //     // ✅ Si le terrain existe
-    //     return response()->json([
-    //         'exists'  => true,
-    //         'terrain' => $terrain, 
-    //         'message' => '✅ Terrain existant et enregistré sous '
-    //     ]);
-    // }
 
     public function verifyDossier(Request $request)
     {
         $request->validate([
+            'slt_region' => 'nullable|exists:regions,id',
+            'slt_departement' => 'nullable|exists:departements,id',
+            'slt_arrondissement' => 'nullable|exists:arrondissements,id',
+            'slt_commune' => 'nullable|exists:communes,id',
             'txt_num_lotissement' => 'required|string',
-            'txt_lotissement' => 'required|string', // nom du lotissement
+            'txt_lotissement' => 'required|string',
         ]);
 
-        $num = trim($request->txt_num_lotissement);
-        $lotissementName = trim($request->txt_lotissement); // nom du lotissement
+        // 🔍 RECHERCHE DU TERRAIN PAR LOCALISATION
+        $query = Terrain::with(['dossier', 'region', 'departement', 'arrondissement', 'commune']);
 
-        // Chercher le terrain
-        $terrain = Terrain::where('txt_num_lotissement', $num)
-            ->where('txt_lotissement', $lotissementName)  // comparer avec le nom
-            ->first();
+        if ($request->filled('slt_region')) {
+            $query->where('slt_region', $request->slt_region);
+        }
+        if ($request->filled('slt_departement')) {
+            $query->where('slt_departement', $request->slt_departement);
+        }
+        if ($request->filled('slt_arrondissement')) {
+            $query->where('slt_arrondissement', $request->slt_arrondissement);
+        }
+        if ($request->filled('slt_commune')) {
+            $query->where('slt_commune', $request->slt_commune);
+        }
 
+        $query->where('txt_num_lotissement', trim($request->txt_num_lotissement))
+            ->where('txt_lotissement', trim($request->txt_lotissement));
+
+        $terrain = $query->first();
+
+        // ❌ TERRAIN NON TROUVÉ
         if (!$terrain) {
             return response()->json([
                 'exists' => false,
-                'message' => '❌ Terrain introuvable, enregistrer le terrain avant mutation.'
-            ]);
+                'terrain_exists' => false,
+                'has_dossier' => false,
+                'message' => '❌ Terrain introuvable. Veuillez enregistrer le terrain avant la mutation.',
+                'action' => 'create_terrain'
+            ], 404);
         }
 
-        // ✅ Tout existe
-        return response()->json([
-            'exists'  => true,
+        // ✅ TERRAIN TROUVÉ
+        $response = [
+            'exists' => true,
+            'terrain_exists' => true,
             'terrain' => $terrain,
-            'message' => '✅ Terrain existant'
-        ]);
+            'terrain_info' => [
+                'id' => $terrain->id,
+                'num_lotissement' => $terrain->txt_num_lotissement,
+                'lotissement' => $terrain->txt_lotissement,
+                'nicad' => $terrain->txt_nicad ?? 'Non renseigné',
+                'num_parcelle' => $terrain->txt_num_parcelle ?? 'Non renseigné',
+                'surface' => $terrain->nbr_surface ?? 'Non renseignée',
+                'region' => $terrain->region ? $terrain->region->nom : null,
+                'departement' => $terrain->departement ? $terrain->departement->nom : null,
+                'arrondissement' => $terrain->arrondissement ? $terrain->arrondissement->nom : null,
+                'commune' => $terrain->commune ? $terrain->commune->nom : null,
+            ]
+        ];
+
+        // 📋 VÉRIFICATION DU DOSSIER
+        if ($terrain->dossier) {
+            $response['has_dossier'] = true;
+            $response['dossier'] = $terrain->dossier;
+            $response['dossier_info'] = [
+                'id' => $terrain->dossier->id,
+                'num_dossier' => $terrain->dossier->txt_num_dossier,
+                'nicad' => $terrain->dossier->txt_nicad ?? 'Non renseigné',
+                'proprietaire' => $terrain->dossier->txt_proprietaire ?? 'Non renseigné',
+                'telephone' => $terrain->dossier->txt_telephone ?? 'Non renseigné',
+                'email' => $terrain->dossier->txt_email ?? 'Non renseigné',
+                'date_creation' => $terrain->dossier->created_at ? $terrain->dossier->created_at->format('d/m/Y H:i') : 'Non renseignée',
+                'statut' => $terrain->dossier->statut ?? 'Actif',
+            ];
+            
+            $response['message'] = "✅ Terrain existant avec dossier N° {$terrain->dossier->txt_num_dossier}";
+            $response['action'] = 'dossier_exists';
+            
+        } else {
+            // 📝 TERRAIN SANS DOSSIER
+            $response['has_dossier'] = false;
+            $response['message'] = "✅ Terrain existant sans dossier. Prêt à créer un nouveau dossier.";
+            $response['action'] = 'create_dossier';
+        }
+
+        return response()->json($response, 200);
     }
 
     // Récupérer les références de lotissement
@@ -167,28 +199,52 @@ class SecretariatController extends Controller
         ]);
     }
 
+    // store
     public function store(Request $request)
     {
- 
+        // 🔥 Nettoyage NICAD
+        $nicadNettoye = preg_replace('/\s+/', '', $request->txt_nicad ?? '');
 
-        $validatedData = $request->validate([
+        // ⚡ VÉRIFICATION DU NICAD DANS LA TABLE TERRAINS
+        $terrainExistant = Terrain::whereRaw("
+            REPLACE(REPLACE(REPLACE(txt_nicad,' ',''),'\n',''),'\r','') = ?
+        ", [$nicadNettoye])->first();
+
+        // 🚨 Si le NICAD existe déjà dans un terrain
+        if ($terrainExistant) {
+            // Vérifier si ce terrain a un dossier
+            if ($terrainExistant->dossier) {
+                // Le terrain a déjà un dossier → on bloque
+                throw ValidationException::withMessages([
+                    'txt_nicad' => 'Ce NICAD est déjà associé au terrain N° ' . 
+                        ($terrainExistant->id ?? 'inconnu') . 
+                        ' et au dossier N° ' . 
+                        ($terrainExistant->dossier->txt_num_dossier ?? 'inconnu')
+                ]);
+            } else {
+                // Le terrain existe mais sans dossier → on peut le réutiliser
+                // On garde une référence pour mise à jour
+                $terrainAReutiliser = $terrainExistant;
+            }
+        }
+
+        // 🔥 Validation (inchangée)
+        $validated = $request->validate([
             'txt_num_dossier' => 'required|string|unique:dossiers,txt_num_dossier',
             'slt_service_rendu' => 'nullable|string',
             'txt_etat_cession' => 'nullable|string',
             'txt_cession_definitive' => 'nullable|string',
             'dt_date_creation' => 'required|date',
 
-            // table Reference_Cadastral
             'rd_immatriculation_terrain' => 'required|string',
             'slt_dependant_domaine' => 'nullable|string',
-            'ussu_bornage' => 'nullable|string', 
+            'ussu_bornage' => 'nullable|string',
             'slt_lf' => 'nullable|string',
             'txt_num_requisition' => 'nullable|string',
             'txt_surface_bornage' => 'nullable|string',
             'dt_date_bornage' => 'nullable|date',
             'txt_nom_geometre' => 'nullable|string',
 
-            // table Titulaire
             'slt_titulaire' => 'required|string',
             'txt_nationalite' => 'nullable|string',
             'slt_civilite' => 'nullable|string',
@@ -200,21 +256,21 @@ class SecretariatController extends Controller
             'dt_date_naissance' => 'nullable|date',
             'txt_lieu_naissance' => 'nullable|string',
             'txt_adresse' => 'nullable|string',
-            'tel_telephone' => 'nullable|string', 
+            'tel_telephone' => 'nullable|string',
             'eml_email' => 'nullable|string',
             'txt_representant' => 'nullable|string',
             'tel_telRepresentant' => 'nullable|string',
-                // Personne physique
+
             'slt_categoriePM' => 'nullable|string',
-            'txt_formJuridiquePM' => 'nullable|string', 
-            'txt_denominationPM' => 'nullable|string', 
-            'txt_nineaPM' => 'nullable|string', 
-            'txt_perssonneRepresentantPM' => 'nullable|string', 
-            'txt_fonctionPM' => 'nullable|string', 
-            'txt_telephonePM' => 'nullable|string', 
-            'txt_emailPM' => 'nullable|string', 
-            'txt_adressePM' => 'nullable|string', 
-                // Personne morale
+            'txt_formJuridiquePM' => 'nullable|string',
+            'txt_denominationPM' => 'nullable|string',
+            'txt_nineaPM' => 'nullable|string',
+            'txt_perssonneRepresentantPM' => 'nullable|string',
+            'txt_fonctionPM' => 'nullable|string',
+            'txt_telephonePM' => 'nullable|string',
+            'txt_emailPM' => 'nullable|string',
+            'txt_adressePM' => 'nullable|string',
+
             'slt_etablissementPA' => 'nullable|string',
             'txt_personneResponsablePA' => 'nullable|string',
             'txt_fonctionResponsablePA' => 'nullable|string',
@@ -223,168 +279,174 @@ class SecretariatController extends Controller
             'txt_ministèreTutelePA' => 'nullable|string',
 
             'fichierPDF' => 'nullable|file|mimes:pdf|max:120400',
-        
-                // table Terrain 
+
             'txt_lotissement' => 'nullable|string',
             'txt_HorsLotissement' => 'nullable|string',
             'txt_num_lotissement' => 'nullable|string',
             'txt_num_section' => 'nullable|string',
-            'txt_num_parcelle' => 'nullable|string', 
+            'txt_num_parcelle' => 'nullable|string',
             'nbr_surface' => 'nullable|numeric',
             'txt_num_titre' => 'nullable|string',
             'txt_titre_mere' => 'nullable|string',
             'txt_appartement' => 'nullable|string',
             'slt_document_admin' => 'nullable|string',
             'txt_num_deliberation' => 'nullable|string',
-            'dt_date_deliberation' => 'nullable|date', 
-            'txt_nicad' => 'nullable|string|unique:terrains,txt_nicad', 
+            'dt_date_deliberation' => 'nullable|date',
+            'txt_nicad' => 'nullable|string',
+
             'slt_region' => 'required|exists:regions,id',
             'slt_departement' => 'required|exists:departements,id',
             'slt_arrondissement' => 'required|exists:arrondissements,id',
-            'slt_commune' => 'required|exists:communes,id', 
-        ], [
-        
-                // Dossier
-                'txt_num_dossier.required' => 'Le numéro de dossier est obligatoire.',
-                'txt_num_dossier.unique'   => 'Le numéro de dossier existe déjà.',
+            'slt_commune' => 'required|exists:communes,id',
+        ],
+            [
+                'txt_num_dossier.required' => 'Le champ "Numéro de dossier" est obligatoire.',
+                'slt_region.required' => 'Le champ "Nombre de parcelles" est obligatoire.',
+                'slt_departement.required' => 'Le champ "Departement" est obligatoire.',
+                'slt_arrondissement.required' => 'Le champ "Arrondissement" est obligatoire.',
+                'slt_commune.required' => 'Le champ "Commune" est obligatoire.',
+                'txt_surfaceLotissement.required' => 'Le champ "Surface" est obligatoire.',
+                'txt_num_dossier.unique' => 'Le numéro de dossier est deja pris.',
+                'slt_titulaire.required' => 'Le champ "Titulaire" est obligatoire.',
+                'rd_immatriculation_terrain.required' => 'Le champ "Immatriculation terrain" est obligatoire.',
+            ]);
 
-                // Localisation
-                'slt_region.required'        => 'La région est obligatoire.',
-                'slt_departement.required'   => 'Le département est requis.',
-                'slt_arrondissement.required'=> 'L’arrondissement est requis.',
-                'slt_commune.required'       => 'La commune est requise.',
-
-                // Dates
-                'dt_date_creation.required'  => 'La date de création est obligatoire.',
-                'dt_date_delivrance.after'   => 'La date de délivrance doit être postérieure à la date de naissance.',
-
-                // Terrain
-                'txt_nicad.unique'           => 'Ce NICAD existe déjà dans la base.',
-                'rd_immatriculation_terrain.required' => 'L’immatriculation du terrain est obligatoire.',
-                'nbr_surface.numeric'        => 'La surface doit être numérique.',
-
-                // Titulaire
-                'slt_titulaire.required'     => 'Le titulaire est obligatoire.',
-
-                // Fichier PDF (⚠️ nom à vérifier)
-                'fichierPDF.file'  => 'Le fichier sélectionné est invalide.',
-                'fichierPDF.mimes' => 'Le fichier doit être au format PDF.',
-                'fichierPDF.max'   => 'La taille du fichier ne doit pas dépasser 120 Mo.',
-
-        ]);     
-            
-        $region = Region::find($request->slt_region);
-        $departement = Departement::find($request->slt_departement);
-        $arrondissement = Arrondissement::find($request->slt_arrondissement);
-        $commune = Commune::find($request->slt_commune);
-
-
-        if (!$region || !$departement || !$arrondissement || !$commune) {
-            return back()->with('danger', 'Une des relations est introuvable.');
-        }
-        
-        // traitement fichier PDF
+        // 📁 fichier PDF
         if ($request->hasFile('fichierPDF')) {
-            $validatedData['fichierPDF'] = $request->file('fichierPDF')->store('numerisation', 'public');
+            $validated['fichierPDF'] = $request->file('fichierPDF')
+                ->store('numerisation', 'public');
+        }
+ 
+        // vérification du couple lotissement et numéro de lotissement pour un terrain existant 
+        // Après validation, vérification du couple
+        $lotissementNettoye = preg_replace('/\s+/', '', $request->txt_lotissement ?? '');
+        $numLotissementNettoye = preg_replace('/\s+/', '', $request->txt_num_lotissement ?? '');
+
+        $terrainExistantCouple = Terrain::where('txt_lotissement', $lotissementNettoye)
+            ->where('txt_num_lotissement', $numLotissementNettoye)
+            ->first();
+
+        if ($terrainExistantCouple) {
+            // Si le terrain a déjà un dossier, on bloque
+            if ($terrainExistantCouple->dossier) {
+                $dossier = $terrainExistantCouple->dossier;
+                $titulaire = $terrainExistantCouple->titulaire;
+                $message = 'Ce lotissement et ce numéro de lotissement existent déjà.';
+                if ($dossier) {
+                    $message .= ' Dossier N° ' . $dossier->txt_num_dossier . '.';
+                }
+                if ($titulaire) {
+                    $message .= ' Propriétaire : ' . ($titulaire->txt_prenom ?? '') . ' ' . ($titulaire->txt_nom ?? '');
+                }
+                throw ValidationException::withMessages([
+                    'txt_lotissement' => $message,
+                    'txt_num_lotissement' => 'Ce numéro de lotissement est déjà utilisé pour ce lotissement.'
+                ]);
+            } else {
+                // Terrain sans dossier, on peut le réutiliser
+                $terrainAReutiliser = $terrainExistantCouple; // ou fusionner avec le précédent
+            }
         }
 
-        $lastNumOrdre = Dossier::max('txt_num_dordre');
+        return DB::transaction(function () use ($validated) {
 
-        // Si aucun dossier n'existe encore, on commence à 1
-        $numeroDordre = $lastNumOrdre ? $lastNumOrdre + 1 : 1;
- 
-        $dossier = Dossier::create([
-            'txt_num_dossier' =>  $validatedData['txt_num_dossier'], 
-            'txt_num_dordre' => $numeroDordre,  // numero d/'incementer 
-            'slt_service_rendu' => $validatedData['slt_service_rendu'] ?? null,
-            'txt_etat_cession' => $validatedData['txt_etat_cession'] ?? null,
-            'txt_cession_definitive' => $validatedData['txt_cession_definitive'] ?? null,
-            'dt_date_creation' => $validatedData['dt_date_creation'],
-        ]);
+            // 🔢 numéro ordre optimisé
+            $numeroDordre = (Dossier::max('txt_num_dordre') ?? 0) + 1;
 
-        $referenceCadastrale = ReferenceCadastrale::create([   
-            'rd_immatriculation_terrain' => $validatedData['rd_immatriculation_terrain'],
-            'slt_dependant_domaine' => $validatedData['slt_dependant_domaine'] ?? null, 
-            'ussu_bornage' => $validatedData['ussu_bornage'] ?? null, 
-            'slt_lf' => $validatedData['slt_lf'] ?? null,
-            'txt_num_requisition' => $validatedData['txt_num_requisition'] ?? null,
-            'txt_surface_bornage' => $validatedData['txt_surface_bornage'] ?? null,
-            'dt_date_bornage' =>  $validatedData['dt_date_bornage'] ?? null,
-            'txt_nom_geometre' => $validatedData['txt_nom_geometre'] ?? null,
-        ]);
+            // 📁 DOSSIER
+            $dossier = Dossier::create([
+                'txt_num_dossier' => $validated['txt_num_dossier'],
+                'txt_num_dordre' => $numeroDordre,
+                'slt_service_rendu' => $validated['slt_service_rendu'] ?? null,
+                'txt_etat_cession' => $validated['txt_etat_cession'] ?? null,
+                'txt_cession_definitive' => $validated['txt_cession_definitive'] ?? null,
+                'dt_date_creation' => $validated['dt_date_creation'],
+            ]);
 
-        $titulaire = Titulaire::create([
-            'slt_titulaire' => $validatedData['slt_titulaire'],
-            'txt_nationalite' => $validatedData['txt_nationalite'] ?? null,
-            'slt_civilite' => $validatedData['slt_civilite'] ?? null,
-            'txt_prenom' => $validatedData['txt_prenom'] ?? null,
-            'txt_nom' => $validatedData['txt_nom'] ?? null,
-            'slt_piece' => $validatedData['slt_piece'] ?? null,
-            'txt_numPiece' => $validatedData['txt_numPiece'] ?? null,
-            'dt_date_delivrance' => $validatedData ['dt_date_delivrance'] ?? null,
-            'dt_date_naissance' => $validatedData ['dt_date_naissance'] ?? null,
-            'txt_lieu_naissance' => $validatedData['txt_lieu_naissance'] ?? null,
-            'txt_adresse' => $validatedData['txt_adresse'] ?? null,
-            'tel_telephone' => $validatedData['tel_telephone'] ?? null,
-            'eml_email' => $validatedData['eml_email'] ?? null,
-            'txt_representant' => $validatedData['txt_representant'] ?? null,
-            'tel_telRepresentant' => $validatedData['tel_telRepresentant'] ?? null,
-                // Personne physique
-            'slt_categoriePM'   => $validatedData['slt_categoriePM'] ?? null,
-            'txt_formJuridiquePM' => $validatedData['txt_formJuridiquePM'] ?? null, 
-            'txt_denominationPM' => $validatedData['txt_denominationPM'] ?? null, 
-            'txt_nineaPM' => $validatedData['txt_nineaPM'] ?? null, 
-            'txt_perssonneRepresentantPM' => $validatedData['txt_perssonneRepresentantPM'] ?? null, 
-            'txt_fonctionPM' => $validatedData['txt_fonctionPM'] ?? null, 
-            'txt_telephonePM' => $validatedData['txt_telephonePM'] ?? null, 
-            'txt_emailPM' => $validatedData['txt_emailPM'] ?? null, 
-            'txt_adressePM' => $validatedData['txt_adressePM'] ?? null, 
-                // Personne morale
-            'slt_etablissementPA' => $validatedData['slt_etablissementPA'] ?? null,
-            'txt_personneResponsablePA' => $validatedData['txt_personneResponsablePA'] ?? null,
-            'txt_fonctionResponsablePA' => $validatedData['txt_fonctionResponsablePA'] ?? null,
-            'txt_telephonePA' => $validatedData['txt_telephonePA'] ?? null,
-            'txt_emailPA' => $validatedData['txt_emailPA'] ?? null,
-            'txt_ministèreTutelePA' => $validatedData['txt_ministèreTutelePA'] ?? null,
+            // 📌 REFERENCE CADASTRALE
+            $reference = ReferenceCadastrale::create([
+                'rd_immatriculation_terrain' => $validated['rd_immatriculation_terrain'],
+                'slt_dependant_domaine' => $validated['slt_dependant_domaine'] ?? null,
+                'ussu_bornage' => $validated['ussu_bornage'] ?? null,
+                'slt_lf' => $validated['slt_lf'] ?? null,
+                'txt_num_requisition' => $validated['txt_num_requisition'] ?? null,
+                'txt_surface_bornage' => $validated['txt_surface_bornage'] ?? null,
+                'dt_date_bornage' => $validated['dt_date_bornage'] ?? null,
+                'txt_nom_geometre' => $validated['txt_nom_geometre'] ?? null,
+            ]);
 
-            'fichierPDF'=> $validatedData['fichierPDF'] ?? null,
-        ]);
+            // 👤 TITULAIRE
+            $titulaire = Titulaire::create([
+                'slt_titulaire' => $validated['slt_titulaire'],
+                'txt_nationalite' => $validated['txt_nationalite'] ?? null,
+                'slt_civilite' => $validated['slt_civilite'] ?? null,
+                'txt_prenom' => $validated['txt_prenom'] ?? null,
+                'txt_nom' => $validated['txt_nom'] ?? null,
+                'slt_piece' => $validated['slt_piece'] ?? null,
+                'txt_numPiece' => $validated['txt_numPiece'] ?? null,
+                'dt_date_delivrance' => $validated['dt_date_delivrance'] ?? null,
+                'dt_date_naissance' => $validated['dt_date_naissance'] ?? null,
+                'txt_lieu_naissance' => $validated['txt_lieu_naissance'] ?? null,
+                'txt_adresse' => $validated['txt_adresse'] ?? null,
+                'tel_telephone' => $validated['tel_telephone'] ?? null,
+                'eml_email' => $validated['eml_email'] ?? null,
+                'txt_representant' => $validated['txt_representant'] ?? null,
+                'tel_telRepresentant' => $validated['tel_telRepresentant'] ?? null,
 
-        // table Terrain
-        $terrain = Terrain::create([
-                    
-            'txt_lotissement' => $validatedData['txt_lotissement'] ?? null,
-            'txt_HorsLotissement' => $validatedData['txt_HorsLotissement'] ?? null,
-            'txt_num_lotissement' => $validatedData['txt_num_lotissement'] ?? null,
-            'txt_num_section' => $validatedData['txt_num_section'] ?? null,
-            'txt_num_parcelle' => $validatedData['txt_num_parcelle'] ?? null, 
-            'nbr_surface' => $validatedData['nbr_surface'] ?? null,
-            'txt_num_titre' => $validatedData['txt_num_titre'] ?? null,
-            'txt_titre_mere' => $validatedData['txt_titre_mere'] ?? null,          
-            'txt_appartement' => $validatedData['txt_appartement'] ?? null,  
-            'slt_document_admin' => $validatedData['slt_document_admin'] ?? null,
-            'txt_num_deliberation' => $validatedData['txt_num_deliberation'] ?? null,
-            'dt_date_deliberation' => $validatedData['dt_date_deliberation'] ?? null,
-            'txt_nicad' => $validatedData['txt_nicad'] ?? null,
+                'slt_categoriePM' => $validated['slt_categoriePM'] ?? null,
+                'txt_formJuridiquePM' => $validated['txt_formJuridiquePM'] ?? null,
+                'txt_denominationPM' => $validated['txt_denominationPM'] ?? null,
+                'txt_nineaPM' => $validated['txt_nineaPM'] ?? null,
+                'txt_perssonneRepresentantPM' => $validated['txt_perssonneRepresentantPM'] ?? null,
+                'txt_fonctionPM' => $validated['txt_fonctionPM'] ?? null,
+                'txt_telephonePM' => $validated['txt_telephonePM'] ?? null,
+                'txt_emailPM' => $validated['txt_emailPM'] ?? null,
+                'txt_adressePM' => $validated['txt_adressePM'] ?? null,
 
-            // Clés étrangères
-            'slt_region' => $region->id,
-            'slt_departement' => $departement->id,
-            'slt_arrondissement' => $arrondissement->id,
-            'slt_commune' => $commune->id,
+                'slt_etablissementPA' => $validated['slt_etablissementPA'] ?? null,
+                'txt_personneResponsablePA' => $validated['txt_personneResponsablePA'] ?? null,
+                'txt_fonctionResponsablePA' => $validated['txt_fonctionResponsablePA'] ?? null,
+                'txt_telephonePA' => $validated['txt_telephonePA'] ?? null,
+                'txt_emailPA' => $validated['txt_emailPA'] ?? null,
+                'txt_ministèreTutelePA' => $validated['txt_ministèreTutelePA'] ?? null,
 
-            'txt_num_dossier' => $dossier->id, // 👍 Correct
-            'reference_cadastrale_id' => $referenceCadastrale->id,
-            'titulaire_id' => $titulaire->id,
-        ]);
+                'fichierPDF' => $validated['fichierPDF'] ?? null,
+            ]);
 
-        return redirect()->route('secretariat.create')->with([
-            'nbr_surface' => $terrain->nbr_surface,
-            'txt_nicad' => $terrain->txt_nicad,
-            'txt_num_dossier' => $dossier->txt_num_dossier,
-        ]);
- 
+            // 🏡 TERRAIN
+            $terrain = Terrain::create([
+                'txt_lotissement' => $validated['txt_lotissement'] ?? null,
+                'txt_HorsLotissement' => $validated['txt_HorsLotissement'] ?? null,
+                'txt_num_lotissement' => $validated['txt_num_lotissement'] ?? null,
+                'txt_num_section' => $validated['txt_num_section'] ?? null,
+                'txt_num_parcelle' => $validated['txt_num_parcelle'] ?? null,
+                'nbr_surface' => $validated['nbr_surface'] ?? null,
+                'txt_num_titre' => $validated['txt_num_titre'] ?? null,
+                'txt_titre_mere' => $validated['txt_titre_mere'] ?? null,
+                'txt_appartement' => $validated['txt_appartement'] ?? null,
+                'slt_document_admin' => $validated['slt_document_admin'] ?? null,
+                'txt_num_deliberation' => $validated['txt_num_deliberation'] ?? null,
+                'dt_date_deliberation' => $validated['dt_date_deliberation'] ?? null,
+                'txt_nicad' => $validated['txt_nicad'] ?? null,
+
+                'slt_region' => $validated['slt_region'],
+                'slt_departement' => $validated['slt_departement'],
+                'slt_arrondissement' => $validated['slt_arrondissement'],
+                'slt_commune' => $validated['slt_commune'],
+
+                'txt_num_dossier' => $dossier->id,
+                'reference_cadastrale_id' => $reference->id,
+                'titulaire_id' => $titulaire->id,
+            ]);
+
+            return redirect()->route('secretariat.create')->with([
+                'nbr_surface' => $terrain->nbr_surface,
+                'txt_nicad' => $terrain->txt_nicad,
+                'txt_num_dossier' => $dossier->txt_num_dossier,
+            ]);
+        });
     }
+
 
     // update Upload PDF
     public function uploadPDF(Request $request, Terrain $terrain)
@@ -404,13 +466,36 @@ class SecretariatController extends Controller
 
         return response()->json(['success' => true, 'path' => $path]);
     }
-
-
+ 
     // Mise à jour d'un terrain
     public function update(Request $request, $id)
     {
         // dd($request->all());
+ 
+                
         $terrain = Terrain::findOrFail($id); 
+
+        // ✅ 1️⃣ Vérifier le doublon en ignorant les accents et la casse
+        $existingTerrain = Terrain::whereRaw('LOWER(txt_nicad) = LOWER(?)', [$request->txt_nicad])
+            ->where('id', '!=', $id)
+            ->with('dossier')
+            ->first();
+
+        if ($existingTerrain) {
+            $message = "Le NICAD {$request->txt_nicad} est déjà attribué au dossier {$existingTerrain->dossier->txt_num_dossier}.";
+            return back()->withErrors(['txt_nicad' => $message])->withInput();
+        }
+
+        // ✅ 2️⃣ Validation
+        $request->validate([
+            'txt_nicad' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('terrains', 'txt_nicad')->ignore($id, 'id'),
+            ],
+            // ... autres validations
+        ]);
  
         // ✅ Mise à jour du terrain (champs directs)
         $terrain->update($request->only([
@@ -623,14 +708,15 @@ class SecretariatController extends Controller
                         'nbr_valeur_totale_ap' => $request->input('nbr_valeur_totale_ap') ?? 0,
                     ], $occupantData)
                 ); 
- 
+
             }
         }
- 
+
 
         return redirect()->route('donnee.create')
             ->with('success', 'Terrain '. $terrain->txt_nicad. ' mis à jour avec succès');     
  
+       
     }
 
 }

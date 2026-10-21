@@ -14,11 +14,11 @@ defineOptions({ layout: DefaultLayout });
   
 // Form
 const form = useForm({
-    txt_denomination: "",
-    txt_nombreParcelle: "", 
     slt_departement: "",
     slt_arrondissement: "",
     slt_commune: "",
+    txt_denomination: "",
+    txt_nombreParcelle: "",
     txt_surfaceLotissement: "",
     txt_documentsAfferants: ""
 });
@@ -93,7 +93,7 @@ onMounted(fetchDepartements);
 // Fichier PDF 
 const handleFileUpload = (event) => {
     fichierPDF.value = event.target.files[0];
-    form.txt_documentsAfferants = fichierPDF.value; // lier directement au formulaire
+    form.txt_documentsAfferantsPoint = fichierPDF.value; // lier directement au formulaire
 };
  
 // Submit
@@ -173,6 +173,7 @@ const submitForm = () => {
                                     />
  
                                     <BaseInput
+                                        type="text"
                                         class="sm:col-span-2"
                                         label="Dénommination"
                                         name="txt_denomination" 
@@ -181,6 +182,7 @@ const submitForm = () => {
                                     />
  
                                     <BaseInput
+                                        type="text"
                                         class="sm:col-span-2"
                                         label="Nombre de Parcelles"
                                         name="txt_nombreParcelle" 
@@ -190,6 +192,7 @@ const submitForm = () => {
 
                                      
                                     <BaseInput
+                                        type="text"
                                         class="sm:col-span-2"
                                         label="Surface du Lotissement"
                                         name="txt_surfaceLotissement"
