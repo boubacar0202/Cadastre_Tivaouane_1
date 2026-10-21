@@ -15,6 +15,7 @@ Homestead.json
 Homestead.yaml
 auth.json
 cadastretv.sn-key.pem
+cadastrekdg.sn-key.pem
 npm-debug.log
 yarn-error.log
 /.fleet
