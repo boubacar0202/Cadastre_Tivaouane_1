@@ -213,7 +213,7 @@ async function submitForm() {
                         </div> 
                         <form @submit.prevent="submitForm">
                             <div class="p-6"> 
-                                <h5 class="text-2xl text-gray-400 font-bold italic text-center mt-2">
+                                <h5 class="text-lg text-primary-txt font-bold text-center mt-2">
                                     Modifier Lotissement : {{ lotissements.txt_denomination }}
                                 </h5> <br>
                                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4"> 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,37 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user && ! $user->is_validated && ! $this->activateFirstAdministrator($user)) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Votre compte est en attente de validation par un administrateur.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Le premier compte inscrit, s'il est administrateur, devient actif sans validation.
+     */
+    private function activateFirstAdministrator(User $user): bool
+    {
+        if ($user->role !== 'admin') {
+            return false;
+        }
+
+        $firstUserId = User::query()->oldest('id')->value('id');
+
+        if ((int) $firstUserId !== (int) $user->getKey()) {
+            return false;
+        }
+
+        $user->forceFill(['is_validated' => true])->save();
+
+        return true;
     }
 
     /**
