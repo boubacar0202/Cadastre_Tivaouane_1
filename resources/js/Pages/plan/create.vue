@@ -33,6 +33,9 @@ const props = defineProps({
 const ZOOM_THRESHOLD_POINTS = 16;
 const ZOOM_THRESHOLD_HISTORIC = 11;
 const SHAPEFILE_RELOAD_DELAY = 500;
+// Centre OSM de la ville de Tivaouane (nœud place=town).
+const CENTRE_TIVAOUANE = [14.9515, -16.8129];
+const ZOOM_TIVAOUANE = 14;
 
 const DEFAULT_PARCEL_STYLE = {
     color: '#052e16',
@@ -163,8 +166,8 @@ let currentZoomAnimation = null;
 
 // Sites historiques
 const historicalSites = ref([
-    { name: "Grande Mosquée de Tivaouane", lat: 14.9506, lng: -16.8244, description: "Centre religieux de Tivaouane.", type: "historique" },
-    { name: "Gare de Tivaouane", lat: 14.9392, lng: -16.8125, description: "Gare ferroviaire de Tivaouane.", type: "historique" },
+    { name: "Grande Mosquée de Tivaouane", lat: 14.95258, lng: -16.81242, description: "Centre religieux de Tivaouane.", type: "historique" },
+    { name: "Gare de Tivaouane", lat: 14.95346, lng: -16.8168, description: "Gare ferroviaire de Tivaouane.", type: "historique" },
 ]);
 const historicLayerGroup = ref(null);
 
@@ -181,6 +184,10 @@ function safeFlyTo(lat, lng, zoom = 20, options = {}) {
     } catch (e) {
         console.warn('flyTo error:', e.message);
     }
+}
+
+function recentrerSurTivaouane() {
+    safeFlyTo(CENTRE_TIVAOUANE[0], CENTRE_TIVAOUANE[1], ZOOM_TIVAOUANE, { duration: 0.8 });
 }
 
 function safeFitBounds(bounds, options = {}) {
@@ -2043,8 +2050,6 @@ async function zoomToShapefile(shp) {
 // 22. INITIALISATION
 // ============================================================
 onMounted(() => {
-    const tivaouane = [14.9506, -16.8244];
-
     map.value = L.map('map', {
         preferCanvas: true,
         zoomAnimation: false,
@@ -2055,7 +2060,7 @@ onMounted(() => {
         wheelPxPerZoomLevel: 100,
         inertia: true,
         easeLinearity: 0.25
-    }).setView(tivaouane, 13);
+    }).setView(CENTRE_TIVAOUANE, ZOOM_TIVAOUANE);
 
     // 🚫 Désactiver le double-clic zoom (source de bugs)
     map.value.doubleClickZoom.disable();
@@ -2094,7 +2099,7 @@ onMounted(() => {
         pointsDensifies.value = props.point_densifiers;
         shapefiles.value = props.shapefiles || [];
         requestAnimationFrame(() => {
-            try { addPointsToMap(); } catch (error) { console.error(error); }
+            try { addPointsToMap({ ajusterVue: false }); } catch (error) { console.error(error); }
             try { addHistoricalSites(); } catch (error) { console.error(error); }
             chargerShapefiles();
         });
@@ -2201,6 +2206,14 @@ onBeforeUnmount(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                         {{ showList ? 'Afficher' : 'Masquer' }} la liste
+                    </button>
+
+                    <button @click="recentrerSurTivaouane" type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white transition bg-primary rounded-lg shadow-sm hover:bg-primary-dark">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        Tivaouane
                     </button>
 
                     <button @click="getUserLocation" :disabled="locationLoading"
