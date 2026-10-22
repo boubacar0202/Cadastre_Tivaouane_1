@@ -1,6 +1,8 @@
 <script setup>
+import InputError from '@/Components/InputError.vue';
+import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import BaseInput from '@/Components/BaseInput.vue';
+import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 
 defineProps({
@@ -36,30 +38,36 @@ const form = useForm({
             @submit.prevent="form.patch(route('profile.update'))"
             class="mt-6 space-y-6"
         >
-            <BaseInput
-                id="name"
-                name="name"
-                label="Prénom et Nom"
-                type="text"
-                v-model="form.name"
-                required
-                autofocus
-                autocomplete="name"
-                wrapper-class="w-full"
-                :error="form.errors.name"
-            />
+            <div>
+                <InputLabel for="name" value="Prénom et Nom" />
 
-            <BaseInput
-                id="email"
-                name="email"
-                label="Email"
-                type="email"
-                v-model="form.email"
-                required
-                autocomplete="username"
-                wrapper-class="w-full"
-                :error="form.errors.email"
-            />
+                <TextInput
+                    id="name"
+                    type="text"
+                    class="mt-1 block w-full"
+                    v-model="form.name"
+                    required
+                    autofocus
+                    autocomplete="name"
+                />
+
+                <InputError class="mt-2" :message="form.errors.name" />
+            </div>
+
+            <div>
+                <InputLabel for="email" value="Email" />
+
+                <TextInput
+                    id="email"
+                    type="email"
+                    class="mt-1 block w-full"
+                    v-model="form.email"
+                    required
+                    autocomplete="username"
+                />
+
+                <InputError class="mt-2" :message="form.errors.email" />
+            </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-primary-txt">
@@ -82,7 +90,7 @@ const form = useForm({
                 </div>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4">`` 
                 <PrimaryButton :disabled="form.processing">Enregistrer</PrimaryButton>
 
                 <Transition

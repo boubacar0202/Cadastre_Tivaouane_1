@@ -86,7 +86,7 @@ const closeModal = () => {
                     />
 
                     <InputError :message="form.errors.password" class="mt-2" />
-                </div>
+cvr                </div>
 
                 <div class="mt-6 flex justify-end">
                     <SecondaryButton @click="closeModal">
